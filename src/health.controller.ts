@@ -20,10 +20,7 @@ export class HealthController {
         database: 'connected',
       };
     } catch (error: any) {
-      this.logger.error(
-        error.message,
-        error.stack,
-      );
+      this.logger.error(error.message, error.stack);
       return {
         status: 'error',
         database: 'disconnected',
