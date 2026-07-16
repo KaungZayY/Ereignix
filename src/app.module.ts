@@ -4,9 +4,9 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { AppLoggerModule } from './infra/logger/logger.module';
-import { HealthController } from './health.controller';
 import { AllExceptionsFilter } from './infra/filters/all-exceptions.filter';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -15,8 +15,9 @@ import { APP_FILTER, APP_PIPE } from '@nestjs/core';
     }),
     PrismaModule,
     AppLoggerModule,
+    HealthModule
   ],
-  controllers: [AppController, HealthController],
+  controllers: [AppController],
   providers: [
     AppService,
     {
@@ -32,8 +33,8 @@ import { APP_FILTER, APP_PIPE } from '@nestjs/core';
         transformOptions: {
           enableImplicitConversion: true,
         },
-      })
-    }
+      }),
+    },
   ],
 })
 export class AppModule {}
