@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
 import { VersioningType } from '@nestjs/common';
+import { setupSwagger } from './config/swagger.config';
 
 
 async function bootstrap() {
@@ -13,6 +14,7 @@ async function bootstrap() {
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+  setupSwagger(app)
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

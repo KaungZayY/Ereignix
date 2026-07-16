@@ -1,8 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from './infra/prisma/prisma.service';
 import { PinoLogger } from 'nestjs-pino';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-@Controller('health')
+@ApiTags('Health')
+@Controller({path: 'health', version: '1'})
 export class HealthController {
   constructor(
     private readonly prisma: PrismaService,
@@ -12,6 +14,13 @@ export class HealthController {
   }
 
   @Get()
+  @ApiOperation({
+    summary: 'Check application health',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Application is running correctly.',
+  })
   async health() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
