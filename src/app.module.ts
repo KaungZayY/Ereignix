@@ -15,7 +15,7 @@ import { HealthModule } from './modules/health/health.module';
     }),
     PrismaModule,
     AppLoggerModule,
-    HealthModule
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

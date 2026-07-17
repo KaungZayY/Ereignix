@@ -8,7 +8,7 @@ import { HealthService } from './health.service';
 export class HealthController {
   constructor(
     private readonly logger: PinoLogger,
-    private readonly healthService: HealthService
+    private readonly healthService: HealthService,
   ) {
     this.logger.setContext(HealthController.name);
   }
