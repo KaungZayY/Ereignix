@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { LivenessResponseDto } from './dto/liveness-response.dto';
+import { ReadinessResponseDto } from './dto/readiness-response.dto';
 
 @Injectable()
 export class HealthService {
   constructor(private readonly prisma: PrismaService) {}
-  async getReadiness() {
+  async getReadiness(): Promise<ReadinessResponseDto> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       return {
@@ -23,7 +25,7 @@ export class HealthService {
     }
   }
 
-  getLiveness() {
+  getLiveness(): LivenessResponseDto {
     return {
       status: 'ok',
     };
