@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
+// import { PinoLogger } from 'nestjs-pino';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthService } from './health.service';
 
@@ -7,10 +7,10 @@ import { HealthService } from './health.service';
 @Controller({ path: 'health', version: '1' })
 export class HealthController {
   constructor(
-    private readonly logger: PinoLogger,
+    // private readonly logger: PinoLogger,
     private readonly healthService: HealthService,
   ) {
-    this.logger.setContext(HealthController.name);
+    // this.logger.setContext(HealthController.name);
   }
 
   @Get('live')
