@@ -1,0 +1,118 @@
+Table Users {
+  id int [pk, increment]
+  name varchar
+  email varchar [unique]
+  password_hash varchar
+  verified_at timestamp
+  last_login_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Refresh_Tokens {
+  id int [pk, increment]
+  user_id int [ref: > Users.id]
+  token_hash varchar
+  expires_at timestamp
+  revoked_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Organizations {
+  id int [pk, increment]
+  name varchar
+  slug varchar
+  owner_id int [ref: > Users.id]
+  plan varchar
+  subscription_status boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Members {
+  id int [pk, increment]
+  user_id int [ref: > Users.id]
+  organization_id int [ref: > Organizations.id]
+  role varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Projects {
+  id int [pk, increment]
+  organization_id int [ref: > Organizations.id]
+  name varchar
+  description text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table API_Keys {
+  id int [pk, increment]
+  project_id int [ref: > Projects.id]
+  key_hash varchar
+  name varchar
+  last_used_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Routes {
+  id int [pk, increment]
+  project_id int [ref: > Projects.id]
+  event_type varchar
+  destination_url varchar
+  http_method varchar
+  secret varchar
+  enabled boolean
+  headers text
+  return_policy varchar
+  timeout int
+  authentication varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Events {
+  id int [pk, increment]
+  project_id int [ref: > Projects.id]
+  event_type varchar
+  payload text
+  received_at timestamp
+  status varchar
+  received_ip varchar
+  request_headers text
+  request_size int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Deliveries {
+  id int [pk, increment]
+  route_id int [ref: > Routes.id]
+  event_id int [ref: > Events.id]
+  status varchar
+  attempt_count int
+  response_code int
+  response_body text
+  delivered_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  latency int
+  error_message text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Audit_Logs {
+  id int [pk, increment]
+  organization_id int [ref: > Organizations.id]
+  user_id int [ref: > Users.id]
+  action varchar
+  resource_type varchar
+  resource_id int
+  metadata json
+  created_at timestamp
+  updated_at timestamp
+}
