@@ -3,10 +3,10 @@ Table Users {
   name varchar
   email varchar [unique]
   password_hash varchar
-  verified_at timestamp
-  last_login_at timestamp
-  created_at timestamp
-  updated_at timestamp
+  verified_at timestamp [null]
+  last_login_at timestamp [null]
+  created_at timestamp [now]
+  updated_at timestamp [now]
 }
 
 Table Refresh_Tokens {

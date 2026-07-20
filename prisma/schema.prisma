@@ -18,10 +18,10 @@ model User {
   name             String
   email            String               @unique
   passwordHash     String               @map("password_hash")
-  verifiedAt       DateTime             @map("verified_at")
-  lastLoginAt      DateTime             @map("last_login_at")
-  createdAt        DateTime             @map("created_at")
-  updatedAt        DateTime             @map("updated_at")
+  verifiedAt       DateTime?            @map("verified_at")
+  lastLoginAt      DateTime?            @map("last_login_at")
+  createdAt        DateTime             @map("created_at") @default(now())
+  updatedAt        DateTime             @map("updated_at") @updatedAt
   memberships      Member[]
   projects         Project[]
 }
