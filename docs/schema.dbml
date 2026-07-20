@@ -23,11 +23,23 @@ Table Organizations {
   id int [pk, increment]
   name varchar
   slug varchar
-  owner_id int [ref: > Users.id]
-  plan varchar
-  subscription_status boolean
+  plan Plan
+  subscription_status SubscriptionStatus
   created_at timestamp
   updated_at timestamp
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  CANCELED
+  PAST_DUE
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 Table Members {
@@ -43,7 +55,8 @@ Table Projects {
   id int [pk, increment]
   organization_id int [ref: > Organizations.id]
   name varchar
-  description text
+  description text [null]
+  created_by int [ref: > Users.id, null]
   created_at timestamp
   updated_at timestamp
 }
