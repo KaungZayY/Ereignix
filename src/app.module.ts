@@ -7,6 +7,7 @@ import { AppLoggerModule } from './infra/logger/logger.module';
 import { AllExceptionsFilter } from './infra/filters/all-exceptions.filter';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { HealthModule } from './modules/health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HealthModule } from './modules/health/health.module';
     PrismaModule,
     AppLoggerModule,
     HealthModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

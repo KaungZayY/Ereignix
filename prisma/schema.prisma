@@ -32,8 +32,8 @@ model Organization {
   slug                  String                @unique
   plan                  Plan                  @default(FREE)
   subscriptionStatus    SubscriptionStatus    @default(TRIAL)
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt      @map("updated_at")
   memberships           Member[]
   projects              Project[]
 }
@@ -55,16 +55,24 @@ model Member {
   id              Int          @id @default(autoincrement())
   userId          Int          @map("user_id")
   organizationId  Int          @map("organization_id")
-  role            String
+  role            MemberRole
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([organizationId])
   @@unique([userId, organizationId])
 }
 
+enum MemberRole {
+  OWNER
+  ADMIN
+  DEVELOPER
+  VIEWER
+}
 
 model Project {
   id              Int          @id @default(autoincrement())
