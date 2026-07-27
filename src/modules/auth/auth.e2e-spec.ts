@@ -1,0 +1,124 @@
+import request from 'supertest';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from 'src/app.module';
+import { INestApplication, VersioningType } from '@nestjs/common';
+import { PrismaService } from 'src/infra/prisma/prisma.service';
+import { MemberRole } from 'generated/prisma/enums';
+
+describe('AuthController (e2e)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    app = moduleFixture.createNestApplication();
+    app.enableVersioning({
+      type: VersioningType.URI,
+    });
+    await app.init();
+    prisma = moduleFixture.get(PrismaService);
+  });
+
+  beforeEach(async () => {
+    await prisma.$executeRawUnsafe(`
+        TRUNCATE TABLE
+        "Member",
+        "Organization",
+        "User"
+        RESTART IDENTITY CASCADE;
+    `);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  describe('POST /v1/auth/register', () => {
+    const dto = {
+      name: 'John',
+      email: 'john@example.com',
+      password: 'Password123!',
+      organizationName: 'An Corporation',
+    };
+
+    it('should register a new user', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+      expect(response.body).toEqual({
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+        user: {
+          id: expect.any(Number),
+          name: dto.name,
+          email: dto.email,
+        },
+        organization: {
+          id: expect.any(Number),
+          name: dto.organizationName,
+          slug: 'an-corporation',
+        },
+      });
+
+      const user = await prisma.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+      expect(user).toBeDefined();
+
+      const org = await prisma.organization.findUnique({
+        where: {
+          slug: 'an-corporation',
+        },
+      });
+      expect(org).toBeDefined();
+
+      const member = await prisma.member.findFirst({
+        where: {
+          userId: user!.id,
+          organizationId: org!.id,
+        },
+      });
+
+      expect(member).toBeDefined();
+      expect(member!.role).toBe(MemberRole.OWNER);
+    });
+
+    it('should return 409 if email already exists', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(409);
+      expect(response.body.message).toBe('Email is already registered.');
+    });
+
+    it('should create unique organization slug', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+      const res = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({
+          ...dto,
+          email: 'test2@example.com',
+        })
+        .expect(201);
+      expect(res.body.organization.slug).toBe('an-corporation-2');
+      const org = await prisma.organization.findUnique({
+        where: {
+          slug: 'an-corporation-2',
+        },
+      });
+      expect(org).toBeDefined();
+    });
+  });
+});
