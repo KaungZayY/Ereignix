@@ -1,17 +1,17 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PasswordService } from 'src/security/password.service';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { generateSlug, appendSlugSuffix } from 'src/general/utils/slug.util';
 import { MemberRole } from 'generated/prisma/enums';
+import { TokenService } from 'src/security/token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly passwordService: PasswordService,
-    private readonly jwtService: JwtService,
+    private readonly tokenService: TokenService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -73,15 +73,28 @@ export class AuthService {
       };
     });
 
-    const payload = {
-      sub: result.user.id,
-      email: result.user.email,
-    };
+    const accessToken = await this.tokenService.generateAccessToken(
+      result.user.id,
+      result.user.email,
+    );
 
-    const accessToken = await this.jwtService.signAsync(payload);
+    const refreshToken = await this.tokenService.generateRefreshToken(
+      result.user.id,
+    );
+
+    const refreshTokenHash = await this.passwordService.hash(refreshToken);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: result.user.id,
+        tokenHash: refreshTokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
     return {
       accessToken,
-      refreshToken: '',
+      refreshToken,
       user: {
         id: result.user.id,
         name: result.user.name,

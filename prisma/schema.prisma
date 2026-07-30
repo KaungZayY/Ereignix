@@ -24,6 +24,7 @@ model User {
   updatedAt        DateTime             @map("updated_at") @updatedAt
   memberships      Member[]
   projects         Project[]
+  refreshTokens    RefreshToken[]
 }
 
 model Organization {
@@ -85,4 +86,17 @@ model Project {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdById     Int?         @map("created_by")
   createdBy       User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+model RefreshToken {
+  id              Int         @id                 @default(autoincrement())
+  userId          Int         @map("user_id")
+  tokenHash       String      @map("token_hash")
+  expiresAt       DateTime    @map("expires_at")
+  revokedAt       DateTime?   @map("revoked_at")
+  createdAt       DateTime    @default(now())     @map("created_at")
+  updatedAt       DateTime    @updatedAt          @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
 }
