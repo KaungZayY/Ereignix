@@ -7,6 +7,7 @@ import { OrganizationModule } from '../organization/organization.module';
 import { UserModule } from '../user/user.module';
 import { AccountModule } from '../account/account.module';
 import { RegisterUseCase } from './use-case/register.use-case';
+import { LoginUseCase } from './use-case/login.use-case';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { RegisterUseCase } from './use-case/register.use-case';
     AccountModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, RegisterUseCase],
+  providers: [AuthService, RegisterUseCase, LoginUseCase],
 })
 export class AuthModule {}

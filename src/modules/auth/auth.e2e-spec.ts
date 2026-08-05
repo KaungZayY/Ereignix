@@ -21,7 +21,7 @@ describe('AuthController (e2e)', () => {
     prisma = moduleFixture.get(PrismaService);
   });
 
-  beforeEach(async () => {
+  const truncateTables = async () => {
     await prisma.$executeRawUnsafe(`
         TRUNCATE TABLE
         "Member",
@@ -29,9 +29,14 @@ describe('AuthController (e2e)', () => {
         "User"
         RESTART IDENTITY CASCADE;
     `);
+  };
+
+  beforeEach(async () => {
+    truncateTables();
   });
 
   afterAll(async () => {
+    truncateTables();
     await app.close();
   });
 
@@ -119,6 +124,65 @@ describe('AuthController (e2e)', () => {
         },
       });
       expect(org).toBeDefined();
+    });
+  });
+
+  describe('POST /v1/auth/login', () => {
+    const dto = {
+      name: 'John',
+      email: 'john@example.com',
+      password: 'Password123!',
+      organizationName: 'An Corporation',
+    };
+    beforeEach(async () => {
+      await request(app.getHttpServer()).post('/v1/auth/register').send(dto);
+    });
+
+    it('should login successfully', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: 'john@example.com',
+          password: 'Password123!',
+        })
+        .expect(201);
+      expect(response.body).toEqual({
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+        user: {
+          id: expect.any(Number),
+          name: dto.name,
+          email: dto.email,
+        },
+        organization: {
+          id: expect.any(Number),
+          name: dto.organizationName,
+          slug: 'an-corporation',
+        },
+      });
+    });
+
+    it('should return 404 when user does not exist', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: 'unknown@example.com',
+          password: 'Password123!',
+        })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid email or password.');
+    });
+
+    it('should return 401 for invalid email', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: 'john@example.com',
+          password: 'wrongpassword123',
+        })
+        .expect(401);
+
+      expect(response.body.message).toBe('Invalid email or password.');
     });
   });
 });

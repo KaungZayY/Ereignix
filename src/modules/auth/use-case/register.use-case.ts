@@ -34,22 +34,11 @@ export class RegisterUseCase {
       slug,
     });
 
-    const accessToken = await this.tokenService.generateAccessToken(
-      result.user.id,
-      result.user.email,
-    );
-
-    const refreshToken = await this.tokenService.generateRefreshToken(
-      result.user.id,
-    );
-
-    const refreshTokenHash = await this.passwordService.hash(refreshToken);
-
-    await this.tokenService.saveRefreshToen(result.user.id, refreshTokenHash);
+    const tokenPair = await this.tokenService.issueTokenPair(result.user.id, result.user.email);
 
     return {
-      accessToken,
-      refreshToken,
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
       user: {
         id: result.user.id,
         name: result.user.name,

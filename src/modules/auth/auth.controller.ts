@@ -3,6 +3,7 @@ import { ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @ApiTags('Authentication')
 @Controller({
@@ -22,5 +23,16 @@ export class AuthController {
   })
   async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(dto)
+  }
+
+  @Post('login')
+  @ApiOperation({
+    summary: 'login user and issue access token'
+  })
+  @ApiCreatedResponse({
+    type: AuthResponseDto,
+  })
+  async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
+    return this.authService.login(dto);
   }
 }
