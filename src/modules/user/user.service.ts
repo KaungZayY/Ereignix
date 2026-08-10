@@ -24,12 +24,28 @@ export class UserService {
         email,
       },
       include: {
-      memberships: {
-        include: {
-          organization: true,
+        memberships: {
+          include: {
+            organization: true,
+          },
         },
       },
-    },
+    });
+    return user;
+  }
+
+  async findById(id: number): Promise<UserWithMemberships | null> {
+    const user: UserWithMemberships | null = await this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        memberships: {
+          include: {
+            organization: true,
+          },
+        },
+      },
     });
     return user;
   }

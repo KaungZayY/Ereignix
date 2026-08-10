@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { PasswordService } from './password.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class TokenService {
+  private static readonly ACCESS_TOKEN_EXPIRY = '15m';
+  private static readonly REFRESH_TOKEN_EXPIRY = '7d';
+  private static readonly REFRESH_TOKEN_EXPIRY_DAYS = 7;
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
@@ -18,50 +23,100 @@ export class TokenService {
         email,
       },
       {
-        expiresIn: '15m',
+        expiresIn: TokenService.ACCESS_TOKEN_EXPIRY,
       },
     );
   }
 
-  async generateRefreshToken(userId: number): Promise<string> {
-    return this.jwtService.signAsync(
+  async generateRefreshToken(
+    userId: number,
+  ): Promise<{ token: string; jti: string }> {
+    const jti = randomUUID();
+    const token = await this.jwtService.signAsync(
       {
         sub: userId,
         type: 'refresh',
+        jti,
       },
       {
-        expiresIn: '7d',
+        expiresIn: TokenService.REFRESH_TOKEN_EXPIRY,
       },
     );
+    return {
+      token,
+      jti,
+    };
   }
 
-  async saveRefreshToken(userId: number, tokenHash: string): Promise<void> {
+  async saveRefreshToken(userId: number, refreshToken: string, jti: string,): Promise<void> {
+    const tokenHash = await this.passwordService.hash(refreshToken);
+    const expiresAt = new Date(
+      Date.now() + TokenService.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+    );
     await this.prisma.refreshToken.create({
       data: {
         userId,
+        jti,
         tokenHash,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt,
       },
     });
   }
 
-  async issueTokenPair(userId: number, email: string): Promise<{accessToken: string; refreshToken: string;}> {
-    const accessToken = await this.generateAccessToken(
-      userId,
-      email
-    );
+  async issueTokenPair(
+    userId: number,
+    email: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessToken = await this.generateAccessToken(userId, email);
 
-    const refreshToken = await this.generateRefreshToken(
-      userId,
-    );
+    const { token: refreshToken, jti } = await this.generateRefreshToken(userId);
 
-    const refreshTokenHash = await this.passwordService.hash(refreshToken);
-
-    await this.saveRefreshToken(userId, refreshTokenHash);
+    await this.saveRefreshToken(userId, refreshToken, jti);
 
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async findValidRefreshToken(userId: number, refreshToken: string, jti: string) {
+    const tokens = await this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        jti,
+        revokedAt: null,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    for (const token of tokens) {
+      const matches = await this.passwordService.verify(
+        refreshToken,
+        token.tokenHash,
+      );
+
+      if (matches) {
+        return token;
+      }
     }
+
+    throw new UnauthorizedException('Invalid or expired refresh token.');
+  }
+
+  async revokeRefreshToken(id: number) {
+    const result = await this.prisma.refreshToken.update({
+      where: {
+        id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+    return result;
   }
 }

@@ -4,6 +4,7 @@ import { AppModule } from 'src/app.module';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { MemberRole } from 'generated/prisma/enums';
+import { JwtService } from '@nestjs/jwt';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -183,6 +184,103 @@ describe('AuthController (e2e)', () => {
         .expect(401);
 
       expect(response.body.message).toBe('Invalid email or password.');
+    });
+  });
+
+  describe('POST /v1/auth/refresh', () => {
+    const dto = {
+      name: 'John',
+      email: 'john@example.com',
+      password: 'Password123!',
+      organizationName: 'An Corporation',
+    };
+
+    beforeEach(async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+    });
+
+    it('should refresh access and refresh tokens successfully', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({ email: dto.email, password: dto.password })
+        .expect(201);
+      const oldRefreshToken = loginResponse.body.refreshToken;
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: oldRefreshToken })
+        .expect(200);
+      expect(response.body).toEqual({
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+        user: { id: expect.any(Number), name: dto.name, email: dto.email },
+        organization: {
+          id: expect.any(Number),
+          name: dto.organizationName,
+          slug: 'an-corporation',
+        },
+      });
+      expect(response.body.accessToken).toEqual(expect.any(String));
+      expect(response.body.refreshToken).not.toBe(oldRefreshToken);
+      await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: oldRefreshToken })
+        .expect(401);
+    });
+
+    it('should return 401 for an invalid refresh token', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: 'invalid-refresh-token' })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid refresh token.');
+    });
+
+    it('should return 401 when refresh token has been revoked', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({ email: dto.email, password: dto.password })
+        .expect(201);
+      const refreshToken = loginResponse.body.refreshToken;
+      await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid or expired refresh token.');
+    });
+
+    it('should return 401 when refresh token is not stored in the database', async () => {
+      const jwtService = app.get(JwtService);
+      const refreshToken = await jwtService.signAsync({
+        sub: 1,
+        type: 'refresh',
+        jti: 'not-stored-jti',
+      });
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid or expired refresh token.');
+    });
+
+    it('should return 401 when refresh token belongs to a nonexistent user', async () => {
+      const jwtService = app.get(JwtService);
+      const refreshToken = await jwtService.signAsync({
+        sub: 999999,
+        type: 'refresh',
+        jti: 'test-jti',
+      });
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid refresh token.');
     });
   });
 });

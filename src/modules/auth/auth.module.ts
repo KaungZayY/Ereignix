@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { AccountModule } from '../account/account.module';
 import { RegisterUseCase } from './use-case/register.use-case';
 import { LoginUseCase } from './use-case/login.use-case';
+import { RefreshTokenUseCase } from './use-case/refresh-token.use-case';
 
 @Module({
   imports: [
@@ -18,6 +19,6 @@ import { LoginUseCase } from './use-case/login.use-case';
     AccountModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, RegisterUseCase, LoginUseCase],
+  providers: [AuthService, RegisterUseCase, LoginUseCase, RefreshTokenUseCase],
 })
 export class AuthModule {}
