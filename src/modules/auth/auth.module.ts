@@ -9,6 +9,7 @@ import { AccountModule } from '../account/account.module';
 import { RegisterUseCase } from './use-case/register.use-case';
 import { LoginUseCase } from './use-case/login.use-case';
 import { RefreshTokenUseCase } from './use-case/refresh-token.use-case';
+import { LogoutUseCase } from './use-case/logout.use-case';
 
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { RefreshTokenUseCase } from './use-case/refresh-token.use-case';
     AccountModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, RegisterUseCase, LoginUseCase, RefreshTokenUseCase],
+  providers: [AuthService, RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LoginUseCase, LogoutUseCase],
 })
 export class AuthModule {}

@@ -8,35 +8,18 @@ import { AuthResponseDto } from '../dto/auth-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/modules/user/user.service';
 import { TokenService } from 'src/security/token.service';
+import { RefreshTokenPayload } from 'src/general/types/token.type';
 
-interface RefreshTokenPayload {
-  sub: number;
-  type: string;
-  jti: string;
-}
 
 @Injectable()
 export class RefreshTokenUseCase {
   constructor(
-    private readonly jwtService: JwtService,
     private readonly userService: UserService,
     private readonly tokenService: TokenService,
   ) {}
 
   async execute(dto: RefreshTokenDto): Promise<AuthResponseDto> {
-    let payload: RefreshTokenPayload;
-
-    try {
-      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(
-        dto.refreshToken,
-      );
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token.');
-    }
-
-    if (payload.type !== 'refresh' || !payload.jti) {
-      throw new UnauthorizedException('Invalid refresh token.');
-    }
+    let payload: RefreshTokenPayload = await this.tokenService.getRefreshTokenPayload(dto.refreshToken);
 
     const user = await this.userService.findById(payload.sub);
     if (!user) {
@@ -50,12 +33,11 @@ export class RefreshTokenUseCase {
     }
 
     const storedToken = await this.tokenService.findValidRefreshToken(
-      user.id,
       dto.refreshToken,
       payload.jti,
     );
 
-    await this.tokenService.revokeRefreshToken(storedToken.id);
+    await this.tokenService.revokeRefreshTokenById(storedToken.id);
 
     const tokenPair = await this.tokenService.issueTokenPair(
       user.id,

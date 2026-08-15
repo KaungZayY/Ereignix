@@ -5,6 +5,8 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { LogoutDto } from './dto/logout.dto';
+import { LogoutResponseDto } from './dto/logout-response.dto';
 
 @ApiTags('Authentication')
 @Controller({
@@ -49,5 +51,17 @@ export class AuthController {
     @Body() dto: RefreshTokenDto,
   ): Promise<AuthResponseDto> {
     return this.authService.refresh(dto);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'LogOut',
+  })
+  @ApiOkResponse({
+    type: LogoutResponseDto,
+  })
+  async logout(@Body() dto: LogoutDto): Promise<LogoutResponseDto> {
+    return this.authService.logout(dto);
   }
 }

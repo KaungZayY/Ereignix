@@ -283,4 +283,89 @@ describe('AuthController (e2e)', () => {
       expect(response.body.message).toBe('Invalid refresh token.');
     });
   });
+
+  describe('POST /v1/auth/refresh', () => {
+    const dto = {
+      name: 'John',
+      email: 'john@example.com',
+      password: 'Password123!',
+      organizationName: 'An Corporation',
+    };
+
+    beforeEach(async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+    });
+
+    it('should logout successfully and revoke the refresh token', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: dto.email,
+          password: dto.password,
+        })
+        .expect(201);
+      const refreshToken = loginResponse.body.refreshToken;
+
+      // Logout
+      const logoutResponse = await request(app.getHttpServer())
+        .post('/v1/auth/logout')
+        .send({
+          refreshToken,
+        })
+        .expect(200);
+      expect(logoutResponse.body).toEqual({
+        message: 'Logged out successfully.',
+      });
+
+      const refreshResponse = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({
+          refreshToken,
+        })
+        .expect(401);
+      expect(refreshResponse.body.message).toBe(
+        'Invalid or expired refresh token.',
+      );
+    });
+
+    it('should return 401 when logging out with an invalid refresh token', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/logout')
+        .send({
+          refreshToken: 'invalid-refresh-token',
+        })
+        .expect(401);
+
+      expect(response.body.message).toBe('Invalid refresh token.');
+    });
+
+    it('should not allow a revoked refresh token to be used for refresh', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: dto.email,
+          password: dto.password,
+        })
+        .expect(201);
+      const refreshToken = loginResponse.body.refreshToken;
+
+      await request(app.getHttpServer())
+        .post('/v1/auth/logout')
+        .send({
+          refreshToken,
+        })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/refresh')
+        .send({
+          refreshToken,
+        })
+        .expect(401);
+      expect(response.body.message).toBe('Invalid or expired refresh token.');
+    });
+  });
 });

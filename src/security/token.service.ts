@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { randomUUID } from 'crypto';
+import { RefreshTokenPayload } from 'src/general/types/token.type';
 
 @Injectable()
 export class TokenService {
@@ -48,7 +49,11 @@ export class TokenService {
     };
   }
 
-  async saveRefreshToken(userId: number, refreshToken: string, jti: string,): Promise<void> {
+  async saveRefreshToken(
+    userId: number,
+    refreshToken: string,
+    jti: string,
+  ): Promise<void> {
     const tokenHash = await this.passwordService.hash(refreshToken);
     const expiresAt = new Date(
       Date.now() + TokenService.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
@@ -69,7 +74,8 @@ export class TokenService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = await this.generateAccessToken(userId, email);
 
-    const { token: refreshToken, jti } = await this.generateRefreshToken(userId);
+    const { token: refreshToken, jti } =
+      await this.generateRefreshToken(userId);
 
     await this.saveRefreshToken(userId, refreshToken, jti);
 
@@ -79,10 +85,12 @@ export class TokenService {
     };
   }
 
-  async findValidRefreshToken(userId: number, refreshToken: string, jti: string) {
+  async findValidRefreshToken(
+    refreshToken: string,
+    jti: string,
+  ) {
     const tokens = await this.prisma.refreshToken.findMany({
       where: {
-        userId,
         jti,
         revokedAt: null,
         expiresAt: {
@@ -108,7 +116,7 @@ export class TokenService {
     throw new UnauthorizedException('Invalid or expired refresh token.');
   }
 
-  async revokeRefreshToken(id: number) {
+  async revokeRefreshTokenById(id: number) {
     const result = await this.prisma.refreshToken.update({
       where: {
         id,
@@ -118,5 +126,34 @@ export class TokenService {
       },
     });
     return result;
+  }
+
+  async getRefreshTokenPayload(
+    refreshToken: string,
+  ): Promise<RefreshTokenPayload> {
+    let payload: RefreshTokenPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(
+        refreshToken,
+      );
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token.');
+    }
+
+    if (payload.type !== 'refresh' || !payload.jti) {
+      throw new UnauthorizedException('Invalid refresh token.');
+    }
+
+    return payload;
+  }
+
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    let payload: RefreshTokenPayload = await this.getRefreshTokenPayload(refreshToken);
+    const storedToken = await this.findValidRefreshToken(
+      refreshToken,
+      payload.jti,
+    );
+
+    await this.revokeRefreshTokenById(storedToken.id);
   }
 }
