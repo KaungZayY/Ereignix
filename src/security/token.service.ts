@@ -21,6 +21,7 @@ export class TokenService {
     return this.jwtService.signAsync(
       {
         sub: userId,
+        type: 'access',
         email,
       },
       {

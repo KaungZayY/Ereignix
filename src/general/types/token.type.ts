@@ -3,3 +3,9 @@ export type RefreshTokenPayload = {
   type: string;
   jti: string;
 }
+
+export type JwtPayload = {
+  sub: string;
+  email: string;
+  type: 'access' | 'refresh';
+}

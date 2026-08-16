@@ -10,6 +10,8 @@ import { RegisterUseCase } from './use-case/register.use-case';
 import { LoginUseCase } from './use-case/login.use-case';
 import { RefreshTokenUseCase } from './use-case/refresh-token.use-case';
 import { LogoutUseCase } from './use-case/logout.use-case';
+import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
+import { JwtStrategy } from 'src/general/strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -20,6 +22,18 @@ import { LogoutUseCase } from './use-case/logout.use-case';
     AccountModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LoginUseCase, LogoutUseCase],
+  providers: [
+    AuthService,
+    RegisterUseCase,
+    LoginUseCase,
+    RefreshTokenUseCase,
+    LoginUseCase,
+    LogoutUseCase,
+    JwtAuthGuard,
+    JwtStrategy,
+  ],
+  exports: [
+    JwtAuthGuard,
+  ],
 })
 export class AuthModule {}
