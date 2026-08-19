@@ -12,6 +12,7 @@ import { RefreshTokenUseCase } from './use-case/refresh-token.use-case';
 import { LogoutUseCase } from './use-case/logout.use-case';
 import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
 import { JwtStrategy } from 'src/general/strategies/jwt.strategy';
+import { MeUseCase } from './use-case/me.use-case';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { JwtStrategy } from 'src/general/strategies/jwt.strategy';
     LogoutUseCase,
     JwtAuthGuard,
     JwtStrategy,
+    MeUseCase,
   ],
   exports: [
     JwtAuthGuard,

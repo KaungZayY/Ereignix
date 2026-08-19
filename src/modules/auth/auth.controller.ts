@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOperation, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
@@ -7,6 +7,10 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { LogoutResponseDto } from './dto/logout-response.dto';
+import { MeResponse } from './dto/me-response.dto';
+import { CurrentUser } from 'src/general/decorators/current-user.decorator';
+import type { CurrentUserPayload } from 'src/general/decorators/current-user.decorator';
+import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
 
 @ApiTags('Authentication')
 @Controller({
@@ -63,5 +67,18 @@ export class AuthController {
   })
   async logout(@Body() dto: LogoutDto): Promise<LogoutResponseDto> {
     return this.authService.logout(dto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'get current user',
+  })
+  @ApiOkResponse({
+    type: MeResponse,
+  })
+  async getMe(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.me(user)
   }
 }

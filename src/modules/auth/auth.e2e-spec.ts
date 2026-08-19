@@ -284,7 +284,7 @@ describe('AuthController (e2e)', () => {
     });
   });
 
-  describe('POST /v1/auth/refresh', () => {
+  describe('POST /v1/auth/logout', () => {
     const dto = {
       name: 'John',
       email: 'john@example.com',
@@ -366,6 +366,137 @@ describe('AuthController (e2e)', () => {
         })
         .expect(401);
       expect(response.body.message).toBe('Invalid or expired refresh token.');
+    });
+  });
+
+  describe('GET /v1/auth/me', () => {
+    const dto = {
+      name: 'John',
+      email: 'john@example.com',
+      password: 'Password123!',
+      organizationName: 'An Corporation',
+    };
+
+    beforeEach(async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send(dto)
+        .expect(201);
+    });
+
+    it('should return the current authenticated user', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: dto.email,
+          password: dto.password,
+        })
+        .expect(201);
+
+      const accessToken = loginResponse.body.accessToken;
+
+      const response = await request(app.getHttpServer())
+        .get('/v1/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        user: {
+          id: expect.any(Number),
+          name: dto.name,
+          email: dto.email,
+        },
+        organization: {
+          id: expect.any(Number),
+          name: dto.organizationName,
+          slug: 'an-corporation',
+        },
+      });
+    });
+
+    it('should return 401 without an access token', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/auth/me')
+        .expect(401);
+
+      expect(response.body.message).toBe('Unauthorized');
+    });
+
+    it('should return 401 with an invalid access token', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/auth/me')
+        .set('Authorization', 'Bearer invalid-access-token')
+        .expect(401);
+
+      expect(response.body.message).toBe('Unauthorized');
+    });
+
+    it('should return 401 when the authenticated user no longer exists', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: dto.email,
+          password: dto.password,
+        })
+        .expect(201);
+
+      const accessToken = loginResponse.body.accessToken;
+
+      const user = await prisma.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+      expect(user).toBeDefined();
+
+      await prisma.user.delete({
+        where: {
+          id: user!.id,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/v1/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(401);
+
+      expect(response.body.message).toBe('User no longer exists.');
+    });
+
+    it('should return 401 when the authenticated user has no organization membership', async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({
+          email: dto.email,
+          password: dto.password,
+        })
+        .expect(201);
+
+      const accessToken = loginResponse.body.accessToken;
+
+      const user = await prisma.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+      expect(user).toBeDefined();
+
+      await prisma.member.deleteMany({
+        where: {
+          userId: user!.id,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/v1/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(401);
+
+      expect(response.body.message).toBe(
+        'User does not belong to an organization.',
+      );
     });
   });
 });
