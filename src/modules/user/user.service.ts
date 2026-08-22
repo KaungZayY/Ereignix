@@ -49,4 +49,15 @@ export class UserService {
     });
     return user;
   }
+
+  async findMembership(userId: number, organizationId: number) {
+    return this.prisma.member.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+  }
 }

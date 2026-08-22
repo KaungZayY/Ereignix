@@ -1,5 +1,18 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOperation, ApiTags, ApiOkResponse } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -9,8 +22,11 @@ import { LogoutDto } from './dto/logout.dto';
 import { LogoutResponseDto } from './dto/logout-response.dto';
 import { MeResponse } from './dto/me-response.dto';
 import { CurrentUser } from 'src/general/decorators/current-user.decorator';
-import type { CurrentUserPayload } from 'src/general/decorators/current-user.decorator';
+import type { AuthenticatedRequestUser } from 'src/general/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/general/guards/roles.guard';
+import { MemberRole } from 'generated/prisma/enums';
+import { Roles } from 'src/general/decorators/roles.decorator';
 
 @ApiTags('Authentication')
 @Controller({
@@ -29,12 +45,12 @@ export class AuthController {
     type: AuthResponseDto,
   })
   async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
-    return this.authService.register(dto)
+    return this.authService.register(dto);
   }
 
   @Post('login')
   @ApiOperation({
-    summary: 'login user and issue access token'
+    summary: 'login user and issue access token',
   })
   @ApiCreatedResponse({
     type: AuthResponseDto,
@@ -51,9 +67,7 @@ export class AuthController {
   @ApiOkResponse({
     type: AuthResponseDto,
   })
-  async refreshToken(
-    @Body() dto: RefreshTokenDto,
-  ): Promise<AuthResponseDto> {
+  async refreshToken(@Body() dto: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refresh(dto);
   }
 
@@ -78,7 +92,17 @@ export class AuthController {
   @ApiOkResponse({
     type: MeResponse,
   })
-  async getMe(@CurrentUser() user: CurrentUserPayload) {
-    return this.authService.me(user)
+  async getMe(@CurrentUser() user: AuthenticatedRequestUser) {
+    return this.authService.me(user);
   }
+
+  // @Get(':organizationId/admin-test')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(MemberRole.OWNER, MemberRole.ADMIN)
+  // adminTest(@CurrentUser() user: AuthenticatedRequestUser) {
+  //   return {
+  //     message: 'You have admin permissions.',
+  //     user,
+  //   };
+  // }
 }

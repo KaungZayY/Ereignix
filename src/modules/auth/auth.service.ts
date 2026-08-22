@@ -11,7 +11,7 @@ import { LogoutResponseDto } from './dto/logout-response.dto';
 import { LogoutUseCase } from './use-case/logout.use-case';
 import { MeResponse } from './dto/me-response.dto';
 import { MeUseCase } from './use-case/me.use-case';
-import { CurrentUserPayload } from 'src/general/decorators/current-user.decorator';
+import { AuthenticatedRequestUser } from 'src/general/decorators/current-user.decorator';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +39,7 @@ export class AuthService {
     return this.logoutUseCase.execute(dto);
   }
 
-  async me(dto: CurrentUserPayload): Promise<MeResponse>{
+  async me(dto: AuthenticatedRequestUser): Promise<MeResponse>{
     return this.meUseCase.execute(dto);
   }
 }

@@ -1,13 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from 'src/modules/user/user.service';
-import type { CurrentUserPayload } from 'src/general/decorators/current-user.decorator';
+import type { AuthenticatedRequestUser } from 'src/general/decorators/current-user.decorator';
 import { MeResponse } from '../dto/me-response.dto';
 
 @Injectable()
 export class MeUseCase {
   constructor(private readonly userService: UserService) {}
 
-  async execute(authUser: CurrentUserPayload): Promise<MeResponse> {
+  async execute(authUser: AuthenticatedRequestUser): Promise<MeResponse> {
     const user = await this.userService.findById(authUser.id);
     if (!user) {
       throw new UnauthorizedException('User no longer exists.');

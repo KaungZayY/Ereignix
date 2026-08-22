@@ -13,6 +13,7 @@ import { LogoutUseCase } from './use-case/logout.use-case';
 import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
 import { JwtStrategy } from 'src/general/strategies/jwt.strategy';
 import { MeUseCase } from './use-case/me.use-case';
+import { RolesGuard } from 'src/general/guards/roles.guard';
 
 @Module({
   imports: [
@@ -33,9 +34,11 @@ import { MeUseCase } from './use-case/me.use-case';
     JwtAuthGuard,
     JwtStrategy,
     MeUseCase,
+    RolesGuard,
   ],
   exports: [
     JwtAuthGuard,
+    RolesGuard,
   ],
 })
 export class AuthModule {}
