@@ -8,6 +8,7 @@ import { AllExceptionsFilter } from './infra/filters/all-exceptions.filter';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ProjectModule } from './modules/project/project.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module';
     AppLoggerModule,
     HealthModule,
     AuthModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [

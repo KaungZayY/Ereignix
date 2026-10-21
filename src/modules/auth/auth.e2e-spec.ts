@@ -33,12 +33,13 @@ describe('AuthController (e2e)', () => {
   };
 
   beforeEach(async () => {
-    truncateTables();
+    await truncateTables();
   });
 
   afterAll(async () => {
-    truncateTables();
+    await truncateTables();
     await app.close();
+    await prisma.$disconnect();
   });
 
   describe('POST /v1/auth/register', () => {
