@@ -86,6 +86,25 @@ model Project {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdById     Int?         @map("created_by")
   createdBy       User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  apiKeys         ApiKey[]
+}
+
+model ApiKey {
+  id         Int       @id @default(autoincrement())
+  keyId      String    @unique @map("key_id")
+  projectId  Int       @map("project_id")
+  name       String
+  keyHash    String    @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([projectId, revokedAt])
 }
 
 model RefreshToken {
