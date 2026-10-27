@@ -9,6 +9,7 @@ import { CreateApiKeyUseCase } from './use-cases/create-api-key.use-case';
 import { ListApiKeysUseCase } from './use-cases/list-api-key.use-case';
 import { RevokeApiKeyUseCase } from './use-cases/revoke-api-key.use-case';
 import { UserModule } from '../user/user.module';
+import { ApiKeyAuthGuard } from 'src/general/guards/api-key-auth.guard';
 
 @Module({
   imports: [AuthModule, UserModule],
@@ -19,6 +20,7 @@ import { UserModule } from '../user/user.module';
     CreateApiKeyUseCase,
     ListApiKeysUseCase,
     RevokeApiKeyUseCase,
+    ApiKeyAuthGuard,
   ],
 })
 export class ApiKeyModule {}
