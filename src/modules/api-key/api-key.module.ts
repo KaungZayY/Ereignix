@@ -22,5 +22,6 @@ import { ApiKeyAuthGuard } from 'src/general/guards/api-key-auth.guard';
     RevokeApiKeyUseCase,
     ApiKeyAuthGuard,
   ],
+  exports: [ApiKeyCryptoService],
 })
 export class ApiKeyModule {}

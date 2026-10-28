@@ -10,6 +10,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProjectModule } from './modules/project/project.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
+import { EventModule } from './modules/event/event.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ApiKeyModule } from './modules/api-key/api-key.module';
     AuthModule,
     ProjectModule,
     ApiKeyModule,
+    EventModule,
   ],
   controllers: [AppController],
   providers: [
