@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProjectModule } from './modules/project/project.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { EventModule } from './modules/event/event.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EventModule } from './modules/event/event.module';
     ProjectModule,
     ApiKeyModule,
     EventModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [
