@@ -12,6 +12,7 @@ import { ProjectModule } from './modules/project/project.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { EventModule } from './modules/event/event.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -26,6 +27,12 @@ import { WebhookModule } from './modules/webhook/webhook.module';
     ApiKeyModule,
     EventModule,
     WebhookModule,
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: Number(process.env.REDIS_PORT ?? 6379),
+      },
+    }),
   ],
   controllers: [AppController],
   providers: [

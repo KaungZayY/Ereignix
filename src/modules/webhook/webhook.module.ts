@@ -6,15 +6,25 @@ import { CreateWebhookEndpointUseCase } from './use-case/create-webhook-endpoint
 import { ListWebhookEndpointsUseCase } from './use-case/list-webhook-endpoints.use-case';
 import { DeleteWebhookEndpointUseCase } from './use-case/delete-webhook-endpoint.use-case';
 import { UserModule } from '../user/user.module';
+import { BullModule } from '@nestjs/bullmq';
+import { WEBHOOK_DELIVERY_QUEUE } from 'src/infra/queue/queue.constants';
+import { WebhookDeliveryProcessor } from './webhook-delivery.processor';
 
 @Module({
-  imports: [AuthModule, UserModule],
+  imports: [
+    AuthModule,
+    UserModule,
+    BullModule.registerQueue({
+      name: WEBHOOK_DELIVERY_QUEUE,
+    }),
+  ],
   controllers: [WebhookController],
   providers: [
     WebhookService,
     CreateWebhookEndpointUseCase,
     ListWebhookEndpointsUseCase,
     DeleteWebhookEndpointUseCase,
+    WebhookDeliveryProcessor,
   ],
 })
 export class WebhookModule {}

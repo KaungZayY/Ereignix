@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-
+import { Prisma } from 'generated/prisma/client';
 export class EventResponseDto {
   @ApiProperty({ example: 1 })
   id!: number;
@@ -18,7 +18,7 @@ export class EventResponseDto {
     },
     type: Object,
   })
-  payload!: Record<string, unknown>;
+  payload!: Prisma.JsonValue;
 
   @ApiProperty({
     example: 'order-created-order_123',

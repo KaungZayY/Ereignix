@@ -135,6 +135,7 @@ model Event {
 
   @@index([projectId, createdAt])
   @@unique([projectId, idempotencyKey])
+  deliveries WebhookDelivery[]
 }
 
 model WebhookEndpoint {
@@ -151,6 +152,7 @@ model WebhookEndpoint {
   subscriptions WebhookSubscription[]
 
   @@index([projectId])
+  deliveries WebhookDelivery[]
 }
 
 model WebhookSubscription {
@@ -163,4 +165,33 @@ model WebhookSubscription {
 
   @@unique([endpointId, eventName])
   @@index([eventName])
+}
+
+
+enum WebhookDeliveryStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+model WebhookDelivery {
+  id                 Int                  @id @default(autoincrement())
+  eventId            Int                  @map("event_id")
+  endpointId         Int                  @map("endpoint_id")
+  status             WebhookDeliveryStatus @default(PENDING)
+  attemptCount       Int                  @default(0) @map("attempt_count")
+  responseStatusCode Int?                 @map("response_status_code")
+  lastError          String?              @map("last_error")
+  nextAttemptAt      DateTime?            @map("next_attempt_at")
+  deliveredAt        DateTime?            @map("delivered_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  event    Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, endpointId])
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
 }
