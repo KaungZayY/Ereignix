@@ -4,10 +4,12 @@ import { INestApplication, VersioningType } from '@nestjs/common';
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { MemberRole } from 'generated/prisma/enums';
+import { WebhookSecretService } from './services/webhook-secret.service';
 
 describe('WebhookController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let webhookSecretService: WebhookSecretService;
 
   let accessToken: string;
   let organizationId: number;
@@ -55,6 +57,7 @@ describe('WebhookController (e2e)', () => {
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
+    webhookSecretService = app.get<WebhookSecretService>(WebhookSecretService);
   });
 
   beforeEach(async () => {
@@ -177,6 +180,74 @@ describe('WebhookController (e2e)', () => {
       await authRequest('post', webhookUrl())
         .send(createWebhookDto)
         .expect(201);
+    });
+
+    it('should encrypt the webhook secret before storing it', async () => {
+      const response = await authRequest('post', webhookUrl())
+        .send(createWebhookDto)
+        .expect(201);
+
+      const rawSecret = response.body.secret;
+
+      const storedEndpoint = await prisma.webhookEndpoint.findUnique({
+        where: {
+          id: response.body.endpoint.id,
+        },
+      });
+
+      expect(storedEndpoint).not.toBeNull();
+      expect(storedEndpoint!.secret).not.toBe(rawSecret);
+      expect(storedEndpoint!.secret).toMatch(/^v1\./);
+
+      expect(webhookSecretService.decrypt(storedEndpoint!.secret)).toBe(
+        rawSecret,
+      );
+    });
+
+    it.each([
+      {
+        description: 'HTTP URLs',
+        url: 'http://example.com/webhooks',
+      },
+      {
+        description: 'localhost',
+        url: 'https://localhost/webhooks',
+      },
+      {
+        description: 'localhost subdomains',
+        url: 'https://api.localhost/webhooks',
+      },
+      {
+        description: 'loopback IPv4',
+        url: 'https://127.0.0.1/webhooks',
+      },
+      {
+        description: 'private IPv4',
+        url: 'https://192.168.1.10/webhooks',
+      },
+      {
+        description: 'cloud metadata IP',
+        url: 'https://169.254.169.254/latest/meta-data/',
+      },
+      {
+        description: 'loopback IPv6',
+        url: 'https://[::1]/webhooks',
+      },
+      {
+        description: 'non-standard HTTPS port',
+        url: 'https://example.com:8443/webhooks',
+      },
+      {
+        description: 'URLs containing credentials',
+        url: 'https://user:password@example.com/webhooks',
+      },
+    ])('should reject $description', async ({ url }) => {
+      await authRequest('post', webhookUrl())
+        .send({
+          ...createWebhookDto,
+          url,
+        })
+        .expect(400);
     });
   });
 
