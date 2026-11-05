@@ -14,7 +14,7 @@ import { JwtAuthGuard } from 'src/general/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/general/guards/roles.guard';
 import { Roles } from 'src/general/decorators/roles.decorator';
 import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
-import { WebhookService } from './webhook.service';
+import { WebhookService } from './services/webhook.service';
 
 @ApiTags('Webhook Endpoints')
 @ApiBearerAuth()

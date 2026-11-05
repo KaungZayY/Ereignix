@@ -7,7 +7,7 @@ import {
   WEBHOOK_DELIVERY_JOB,
   WEBHOOK_DELIVERY_QUEUE,
 } from 'src/infra/queue/queue.constants';
-import { WebhookSecretService } from './webhook-secret.service';
+import { WebhookSecretService } from './services/webhook-secret.service';
 
 interface WebhookDeliveryJob {
   deliveryId: number;

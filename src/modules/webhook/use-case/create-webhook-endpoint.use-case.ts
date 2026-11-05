@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateWebhookEndpointDto } from '../dto/create-webhook-endpoint.dto';
-import { WebhookSecretService } from '../webhook-secret.service';
+import { WebhookSecretService } from '../services/webhook-secret.service';
 
 @Injectable()
 export class CreateWebhookEndpointUseCase {

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
-import { CreateWebhookEndpointUseCase } from './use-case/create-webhook-endpoint.use-case';
-import { ListWebhookEndpointsUseCase } from './use-case/list-webhook-endpoints.use-case';
-import { DeleteWebhookEndpointUseCase } from './use-case/delete-webhook-endpoint.use-case';
+import { CreateWebhookEndpointDto } from '../dto/create-webhook-endpoint.dto';
+import { CreateWebhookEndpointUseCase } from '../use-case/create-webhook-endpoint.use-case';
+import { ListWebhookEndpointsUseCase } from '../use-case/list-webhook-endpoints.use-case';
+import { DeleteWebhookEndpointUseCase } from '../use-case/delete-webhook-endpoint.use-case';
 
 @Injectable()
 export class WebhookService {

@@ -49,10 +49,10 @@ export class WebhookSecretService {
   }
 
   decrypt(encryptedValue: string): string {
-    // Temporary backwards compatibility for secrets stored
-    // before encryption was introduced.
     if (!encryptedValue.startsWith(`${VERSION}.`)) {
-      return encryptedValue;
+      throw new InternalServerErrorException(
+        'Invalid encrypted webhook secret format.',
+      );
     }
 
     try {
