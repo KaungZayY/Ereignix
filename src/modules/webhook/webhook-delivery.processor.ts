@@ -7,6 +7,7 @@ import {
   WEBHOOK_DELIVERY_JOB,
   WEBHOOK_DELIVERY_QUEUE,
 } from 'src/infra/queue/queue.constants';
+import { WebhookSecretService } from './webhook-secret.service';
 
 interface WebhookDeliveryJob {
   deliveryId: number;
@@ -20,7 +21,10 @@ interface WebhookDeliveryJob {
   concurrency: 10,
 })
 export class WebhookDeliveryProcessor extends WorkerHost {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhookSecretService: WebhookSecretService,
+  ) {
     super();
   }
 
@@ -84,7 +88,11 @@ export class WebhookDeliveryProcessor extends WorkerHost {
 
       const timestamp = Math.floor(Date.now() / 1000).toString();
 
-      const signature = createHmac('sha256', delivery.endpoint.secret)
+      const webhookSecret = this.webhookSecretService.decrypt(
+        delivery.endpoint.secret,
+      );
+
+      const signature = createHmac('sha256', webhookSecret)
         .update(`${timestamp}.${payload}`)
         .digest('hex');
 

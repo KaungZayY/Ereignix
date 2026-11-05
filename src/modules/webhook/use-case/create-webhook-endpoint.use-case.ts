@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateWebhookEndpointDto } from '../dto/create-webhook-endpoint.dto';
+import { WebhookSecretService } from '../webhook-secret.service';
 
 @Injectable()
 export class CreateWebhookEndpointUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhookSecretService: WebhookSecretService,
+  ) {}
 
   async execute(
     organizationId: number,
@@ -23,12 +27,14 @@ export class CreateWebhookEndpointUseCase {
 
     const secret = randomBytes(32).toString('base64url');
 
+    const encryptedSecret = this.webhookSecretService.encrypt(secret);
+
     const endpoint = await this.prisma.webhookEndpoint.create({
       data: {
         projectId,
         name: dto.name,
         url: dto.url,
-        secret,
+        secret: encryptedSecret,
         subscriptions: {
           create: dto.eventNames.map((eventName) => ({ eventName })),
         },
