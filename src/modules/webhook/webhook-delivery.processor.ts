@@ -8,6 +8,7 @@ import {
   WEBHOOK_DELIVERY_QUEUE,
 } from 'src/infra/queue/queue.constants';
 import { WebhookSecretService } from './services/webhook-secret.service';
+import { WebhookUrlService } from './services/webhook-url.service';
 
 interface WebhookDeliveryJob {
   deliveryId: number;
@@ -24,6 +25,7 @@ export class WebhookDeliveryProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly webhookSecretService: WebhookSecretService,
+    private readonly webhookUrlService: WebhookUrlService,
   ) {
     super();
   }
@@ -96,7 +98,11 @@ export class WebhookDeliveryProcessor extends WorkerHost {
         .update(`${timestamp}.${payload}`)
         .digest('hex');
 
-      const response = await fetch(delivery.endpoint.url, {
+      const validatedUrl = await this.webhookUrlService.validate(
+        delivery.endpoint.url,
+      );
+
+      const response = await fetch(validatedUrl, {
         method: 'POST',
         redirect: 'manual',
         signal: AbortSignal.timeout(10_000),

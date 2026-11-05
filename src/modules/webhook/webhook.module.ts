@@ -11,6 +11,7 @@ import { WEBHOOK_DELIVERY_QUEUE } from 'src/infra/queue/queue.constants';
 import { WebhookDeliveryProcessor } from './webhook-delivery.processor';
 import { WebhookDeliveryDispatcherService } from './services/webhook-delivery-dispatcher.service';
 import { WebhookSecretService } from './services/webhook-secret.service';
+import { WebhookUrlService } from './services/webhook-url.service';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { WebhookSecretService } from './services/webhook-secret.service';
     WebhookDeliveryProcessor,
     WebhookDeliveryDispatcherService,
     WebhookSecretService,
+    WebhookUrlService,
   ],
 })
 export class WebhookModule {}

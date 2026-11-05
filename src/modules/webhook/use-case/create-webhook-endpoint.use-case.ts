@@ -3,12 +3,14 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateWebhookEndpointDto } from '../dto/create-webhook-endpoint.dto';
 import { WebhookSecretService } from '../services/webhook-secret.service';
+import { WebhookUrlService } from '../services/webhook-url.service';
 
 @Injectable()
 export class CreateWebhookEndpointUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly webhookSecretService: WebhookSecretService,
+    private readonly webhookUrlService: WebhookUrlService,
   ) {}
 
   async execute(
@@ -29,11 +31,13 @@ export class CreateWebhookEndpointUseCase {
 
     const encryptedSecret = this.webhookSecretService.encrypt(secret);
 
+    const validatedUrl = await this.webhookUrlService.validate(dto.url);
+
     const endpoint = await this.prisma.webhookEndpoint.create({
       data: {
         projectId,
         name: dto.name,
-        url: dto.url,
+        url: validatedUrl,
         secret: encryptedSecret,
         subscriptions: {
           create: dto.eventNames.map((eventName) => ({ eventName })),
