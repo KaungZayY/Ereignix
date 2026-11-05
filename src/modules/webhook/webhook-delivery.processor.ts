@@ -8,7 +8,7 @@ import {
   WEBHOOK_DELIVERY_QUEUE,
 } from 'src/infra/queue/queue.constants';
 
-interface DeliveryJob {
+interface WebhookDeliveryJob {
   deliveryId: number;
 }
 
@@ -16,64 +16,78 @@ interface DeliveryJob {
   concurrency: 10,
 })
 @Injectable()
+@Processor(WEBHOOK_DELIVERY_QUEUE, {
+  concurrency: 10,
+})
 export class WebhookDeliveryProcessor extends WorkerHost {
-  private readonly logger = new Logger(WebhookDeliveryProcessor.name);
-
   constructor(private readonly prisma: PrismaService) {
     super();
   }
 
-  async process(job: Job<DeliveryJob>): Promise<void> {
-    if (job.name !== WEBHOOK_DELIVERY_JOB) return;
-
+  async process(job: Job<WebhookDeliveryJob>): Promise<void> {
     const delivery = await this.prisma.webhookDelivery.findUnique({
-      where: { id: job.data.deliveryId },
+      where: {
+        id: job.data.deliveryId,
+      },
       include: {
         event: true,
         endpoint: true,
       },
     });
 
-    if (!delivery || delivery.status === 'SUCCEEDED') return;
-
-    if (!delivery.endpoint.enabled) {
-      await this.prisma.webhookDelivery.update({
-        where: { id: delivery.id },
-        data: {
-          status: 'FAILED',
-          lastError: 'Webhook endpoint is disabled.',
-          nextAttemptAt: null,
-        },
-      });
+    if (!delivery) {
       return;
     }
 
-    const attemptCount = delivery.attemptCount + 1;
+    // Do not process deliveries that are already terminal.
+    if (delivery.status === 'SUCCEEDED' || delivery.status === 'FAILED') {
+      return;
+    }
 
+    if (!delivery.endpoint.enabled) {
+      await this.prisma.webhookDelivery.update({
+        where: {
+          id: delivery.id,
+        },
+        data: {
+          status: 'FAILED',
+          nextAttemptAt: null,
+          lastError: 'Webhook endpoint is disabled.',
+        },
+      });
+
+      return;
+    }
+
+    // Record the attempt before making the HTTP request.
     await this.prisma.webhookDelivery.update({
-      where: { id: delivery.id },
+      where: {
+        id: delivery.id,
+      },
       data: {
         status: 'PROCESSING',
-        attemptCount,
-        lastError: null,
-        nextAttemptAt: null,
+        attemptCount: {
+          increment: 1,
+        },
       },
     });
 
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-
-    const payload = JSON.stringify({
-      id: delivery.event.id,
-      name: delivery.event.name,
-      payload: delivery.event.payload,
-      createdAt: delivery.event.createdAt.toISOString(),
-    });
-
-    const signature = createHmac('sha256', delivery.endpoint.secret)
-      .update(`${timestamp}.${payload}`)
-      .digest('hex');
+    let responseStatusCode: number | null = null;
 
     try {
+      const payload = JSON.stringify({
+        id: delivery.event.id,
+        name: delivery.event.name,
+        payload: delivery.event.payload,
+        createdAt: delivery.event.createdAt.toISOString(),
+      });
+
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+
+      const signature = createHmac('sha256', delivery.endpoint.secret)
+        .update(`${timestamp}.${payload}`)
+        .digest('hex');
+
       const response = await fetch(delivery.endpoint.url, {
         method: 'POST',
         redirect: 'manual',
@@ -82,75 +96,61 @@ export class WebhookDeliveryProcessor extends WorkerHost {
           'Content-Type': 'application/json',
           'User-Agent': 'Ereignix-Webhook/1.0',
           'X-Ereignix-Event': delivery.event.name,
-          'X-Ereignix-Delivery': String(delivery.id),
+          'X-Ereignix-Delivery': delivery.id.toString(),
           'X-Ereignix-Timestamp': timestamp,
           'X-Ereignix-Signature': `sha256=${signature}`,
         },
         body: payload,
       });
 
+      responseStatusCode = response.status;
+
       if (!response.ok) {
-        const error = `Webhook returned HTTP ${response.status}`;
-
-        await this.recordFailure(delivery.id, error, response.status, job);
-
-        throw new Error(error);
+        throw new Error(
+          `Webhook request failed with status ${response.status}.`,
+        );
       }
 
       await this.prisma.webhookDelivery.update({
-        where: { id: delivery.id },
+        where: {
+          id: delivery.id,
+        },
         data: {
           status: 'SUCCEEDED',
-          responseStatusCode: response.status,
+          responseStatusCode,
           deliveredAt: new Date(),
-          lastError: null,
           nextAttemptAt: null,
+          lastError: null,
+        },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unknown webhook delivery error';
+
+      const maxAttempts = job.opts.attempts ?? 1;
+      const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts;
+
+      // Match the delay configured in the BullMQ exponential backoff.
+      const retryDelay = 1000 * 2 ** job.attemptsMade;
+
+      await this.prisma.webhookDelivery.update({
+        where: {
+          id: delivery.id,
+        },
+        data: {
+          status: isFinalAttempt ? 'FAILED' : 'PENDING',
+          responseStatusCode,
+          lastError: message.slice(0, 1000),
+          nextAttemptAt: isFinalAttempt
+            ? null
+            : new Date(Date.now() + retryDelay),
         },
       });
 
-      this.logger.log(`Delivery ${delivery.id} succeeded.`);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.startsWith('Webhook returned HTTP ')
-      ) {
-        throw error;
-      }
-
-      const message =
-        error instanceof Error ? error.message : 'Unknown delivery error';
-
-      await this.recordFailure(delivery.id, message, null, job);
-
+      // BullMQ must receive the error to trigger its retry mechanism.
       throw error;
     }
-  }
-
-  private async recordFailure(
-    deliveryId: number,
-    message: string,
-    responseStatusCode: number | null,
-    job: Job<DeliveryJob>,
-  ) {
-    const maxAttempts = Number(job.opts.attempts ?? 1);
-    const finalAttempt = job.attemptsMade + 1 >= maxAttempts;
-
-    const backoff = job.opts.backoff;
-    const baseDelay =
-      typeof backoff === 'number' ? backoff : (backoff?.delay ?? 1000);
-
-    await this.prisma.webhookDelivery.update({
-      where: { id: deliveryId },
-      data: {
-        status: finalAttempt ? 'FAILED' : 'PENDING',
-        responseStatusCode,
-        lastError: message.slice(0, 2000),
-        nextAttemptAt: finalAttempt
-          ? null
-          : new Date(Date.now() + baseDelay * 2 ** job.attemptsMade),
-      },
-    });
-
-    this.logger.warn(`Delivery ${deliveryId} failed: ${message}`);
   }
 }
