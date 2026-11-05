@@ -9,6 +9,7 @@ import { UserModule } from '../user/user.module';
 import { BullModule } from '@nestjs/bullmq';
 import { WEBHOOK_DELIVERY_QUEUE } from 'src/infra/queue/queue.constants';
 import { WebhookDeliveryProcessor } from './webhook-delivery.processor';
+import { WebhookDeliveryDispatcherService } from './webhook-delivery-dispatcher.service';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WebhookDeliveryProcessor } from './webhook-delivery.processor';
     ListWebhookEndpointsUseCase,
     DeleteWebhookEndpointUseCase,
     WebhookDeliveryProcessor,
+    WebhookDeliveryDispatcherService,
   ],
 })
 export class WebhookModule {}
